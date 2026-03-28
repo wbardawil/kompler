@@ -145,66 +145,81 @@ async def extract_entities_node(state: DocumentAnalysisState) -> dict:
 
 async def resolve_entities_node(state: DocumentAnalysisState) -> dict:
     """Resolve extracted entities against the existing knowledge graph."""
-    from src.agents.tools.document_tools import generate_embedding
     from src.graph.resolution import EntityResolver
     from src.db.base import async_session
 
     resolved_ids = []
-    resolution_summary = []
 
-    async with async_session() as session:
-        resolver = EntityResolver(session, uuid.UUID(state["tenant_id"]))
+    try:
+        async with async_session() as session:
+            resolver = EntityResolver(session, uuid.UUID(state["tenant_id"]))
 
-        for entity_data in state.get("entities", []):
-            entity_value = entity_data.get("value", "")
-            entity_type = entity_data.get("entity_type", "other")
+            for entity_data in state.get("entities", []):
+                entity_value = entity_data.get("value", "")
+                entity_type = entity_data.get("entity_type", "other")
 
-            if not entity_value:
-                continue
+                if not entity_value:
+                    continue
 
-            # Generate embedding for similarity matching
-            try:
-                embedding = await generate_embedding(entity_value)
-            except Exception:
+                # Generate embedding if available (may not be on Railway)
                 embedding = None
+                try:
+                    from src.agents.tools.document_tools import generate_embedding
+                    embedding = await generate_embedding(entity_value)
+                except Exception:
+                    pass  # Skip embeddings, use exact matching only
 
-            resolved, resolution_type = await resolver.resolve(
-                entity_value, entity_type, embedding
-            )
-            resolved_ids.append(str(resolved.id))
-            resolution_summary.append(f"{entity_value} → {resolution_type}")
+                resolved, resolution_type = await resolver.resolve(
+                    entity_value, entity_type, embedding
+                )
+                resolved_ids.append(str(resolved.id))
 
-        await session.commit()
+            await session.commit()
 
-    return {
-        "resolved_entity_ids": resolved_ids,
-        "reasoning_chain": state.get("reasoning_chain", [])
-        + [
-            f"resolve_entities: {resolver.stats['exact_matches']} exact, "
-            f"{resolver.stats['embedding_matches']} embedding, "
-            f"{resolver.stats['ambiguous']} ambiguous, "
-            f"{resolver.stats['new_entities']} new"
-        ],
-    }
+        return {
+            "resolved_entity_ids": resolved_ids,
+            "reasoning_chain": state.get("reasoning_chain", [])
+            + [
+                f"resolve_entities: {resolver.stats['exact_matches']} exact, "
+                f"{resolver.stats['embedding_matches']} embedding, "
+                f"{resolver.stats['ambiguous']} ambiguous, "
+                f"{resolver.stats['new_entities']} new"
+            ],
+        }
+    except Exception as e:
+        logger.warning(f"Entity resolution failed, continuing without: {e}")
+        return {
+            "resolved_entity_ids": [],
+            "reasoning_chain": state.get("reasoning_chain", [])
+            + [f"resolve_entities: SKIPPED due to error: {str(e)[:100]}"],
+        }
 
 
 async def find_cross_doc_node(state: DocumentAnalysisState) -> dict:
     """Find documents that share entities with this document."""
-    from src.agents.tools.document_tools import find_cross_doc_matches
-    from src.db.base import async_session
+    try:
+        from src.agents.tools.document_tools import find_cross_doc_matches
+        from src.db.base import async_session
 
-    async with async_session() as session:
-        matches = await find_cross_doc_matches(
-            session,
-            uuid.UUID(state["tenant_id"]),
-            uuid.UUID(state["document_id"]),
-        )
+        async with async_session() as session:
+            matches = await find_cross_doc_matches(
+                session,
+                uuid.UUID(state["tenant_id"]),
+                uuid.UUID(state["document_id"]),
+            )
 
-    return {
-        "cross_doc_matches": matches,
-        "reasoning_chain": state.get("reasoning_chain", [])
-        + [f"find_cross_doc: Found {len(matches)} related documents via shared entities"],
-    }
+        return {
+            "cross_doc_matches": matches,
+            "reasoning_chain": state.get("reasoning_chain", [])
+            + [f"find_cross_doc: Found {len(matches)} related documents via shared entities"],
+        }
+    except Exception as e:
+        logger.warning(f"Cross-doc search failed: {e}")
+        return {
+            "cross_doc_matches": [],
+            "reasoning_chain": state.get("reasoning_chain", [])
+            + [f"find_cross_doc: SKIPPED due to error: {str(e)[:100]}"],
+        }
 
 
 async def detect_contradictions_node(state: DocumentAnalysisState) -> dict:
@@ -330,19 +345,19 @@ async def persist_results_node(state: DocumentAnalysisState) -> dict:
                 {"content": state["text_content"][:100000], "doc_id": state["document_id"]},
             )
 
-        # Generate and store embedding
+        # Generate and store embedding (skip if sentence-transformers not available)
         try:
             from src.agents.tools.document_tools import generate_embedding
-
             embedding = await generate_embedding(
                 state["text_content"], classification.get("summary", "")
             )
-            await session.execute(
-                sql_text("UPDATE documents SET embedding = :emb WHERE id = :id"),
-                {"emb": str(embedding), "id": state["document_id"]},
-            )
+            if embedding:
+                await session.execute(
+                    sql_text("UPDATE documents SET embedding = :emb WHERE id = :id"),
+                    {"emb": str(embedding), "id": state["document_id"]},
+                )
         except Exception as e:
-            logger.warning(f"Embedding generation failed: {e}")
+            logger.warning(f"Embedding skipped: {e}")
 
         # Save entities
         for i, entity_data in enumerate(state.get("entities", [])):
