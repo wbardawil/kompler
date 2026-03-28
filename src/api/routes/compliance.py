@@ -60,8 +60,10 @@ async def get_completeness_all(
     session: AsyncSession = Depends(get_db),
 ):
     """Get completeness summary across all configured frameworks."""
-    # Default to iso_9001 for now. Will use tenant compliance profile later.
-    result = await get_completeness_summary(session, tenant.id, ["iso_9001"])
+    from src.compliance.profile import get_compliance_profile
+    profile = await get_compliance_profile(session, tenant.id)
+    frameworks = profile.get("frameworks", ["iso_9001"])
+    result = await get_completeness_summary(session, tenant.id, frameworks)
     return result
 
 
@@ -172,3 +174,45 @@ async def get_framework_detail(framework_id: str):
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail=f"Framework not found: {framework_id}")
     return framework
+
+
+# --- Compliance Profile ---
+
+@router.get("/compliance/profile")
+async def get_profile(
+    tenant: Tenant = Depends(get_current_tenant),
+    session: AsyncSession = Depends(get_db),
+):
+    """Get the tenant's compliance profile — which frameworks apply."""
+    from src.compliance.profile import get_compliance_profile
+    return await get_compliance_profile(session, tenant.id)
+
+
+class ProfileUpdateRequest(BaseModel):
+    frameworks: Optional[list[str]] = None
+    next_audit_date: Optional[str] = None
+    certifying_body: Optional[str] = None
+    industry: Optional[str] = None
+
+
+@router.put("/compliance/profile")
+async def update_profile(
+    update: ProfileUpdateRequest,
+    tenant: Tenant = Depends(get_current_tenant),
+    session: AsyncSession = Depends(get_db),
+):
+    """Update the compliance profile — select which frameworks apply.
+
+    This is set during onboarding. Available frameworks:
+    - iso_9001: ISO 9001:2015 Quality Management
+    - immex: IMMEX Maquiladora Program (Mexico)
+    - repse: REPSE Specialized Services Registry (Mexico)
+    """
+    from src.compliance.profile import update_compliance_profile
+    return await update_compliance_profile(
+        session, tenant.id,
+        frameworks=update.frameworks,
+        next_audit_date=update.next_audit_date,
+        certifying_body=update.certifying_body,
+        industry=update.industry,
+    )
