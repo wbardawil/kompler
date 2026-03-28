@@ -5,10 +5,12 @@ classify → extract entities → resolve against graph → find cross-doc conne
 → check completeness → generate action items → update score
 """
 
+import json
 import logging
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from pydantic import BaseModel
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -366,7 +368,75 @@ async def get_document_entities(
     }
 
 
+class VerifyFieldRequest(BaseModel):
+    field: str  # "expiry_date", "review_due_date", "classification", "all"
+    confirmed_value: str | None = None  # Optional corrected value
+
+
+@router.put("/documents/{document_id}/verify")
+async def verify_document_field(
+    document_id: uuid.UUID,
+    request: VerifyFieldRequest,
+    tenant: Tenant = Depends(get_current_tenant),
+    session: AsyncSession = Depends(get_db),
+):
+    """Human verifies or corrects an AI-extracted field.
+
+    This is the trust mechanism. AI extracts data, human confirms or corrects.
+    Until verified, dates show as "unverified" in the UI.
+    """
+    from pydantic import BaseModel as PydanticBaseModel
+
+    doc = await session.get(Document, document_id)
+    if not doc or doc.tenant_id != tenant.id:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    meta = doc.enrichment_metadata or {}
+    verified = meta.get("verified", {})
+
+    if request.field == "all":
+        verified["expiry_date"] = True
+        verified["review_due_date"] = True
+        verified["classification"] = True
+    else:
+        verified[request.field] = True
+
+    # If user provided a corrected value, update the field
+    if request.confirmed_value and request.field == "expiry_date":
+        try:
+            from datetime import datetime
+            doc.expiry_date = datetime.fromisoformat(request.confirmed_value)
+        except (ValueError, TypeError):
+            pass
+    elif request.confirmed_value and request.field == "review_due_date":
+        try:
+            from datetime import datetime
+            doc.review_due_date = datetime.fromisoformat(request.confirmed_value)
+        except (ValueError, TypeError):
+            pass
+
+    meta["verified"] = verified
+    doc.enrichment_metadata = meta
+
+    await session.execute(
+        text("UPDATE documents SET enrichment_metadata = :meta WHERE id = :id"),
+        {"meta": json.dumps(meta), "id": str(document_id)},
+    )
+    await session.commit()
+
+    return {
+        "document_id": str(document_id),
+        "field": request.field,
+        "verified": True,
+        "message": f"Field '{request.field}' verified by human review.",
+    }
+
+
 def _doc_to_response(doc: Document) -> DocumentResponse:
+    # Check verification status from enrichment_metadata
+    meta = doc.enrichment_metadata or {}
+    verified = meta.get("verified", {})
+
     return DocumentResponse(
         id=str(doc.id),
         filename=doc.filename,
@@ -381,6 +451,9 @@ def _doc_to_response(doc: Document) -> DocumentResponse:
         entity_count=len(doc.entities) if doc.entities else 0,
         expiry_date=doc.expiry_date,
         review_due_date=doc.review_due_date,
+        expiry_verified=verified.get("expiry_date", False),
+        review_date_verified=verified.get("review_due_date", False),
+        classification_verified=verified.get("classification", False),
         compliance_tags=doc.compliance_tags or [],
         created_at=doc.created_at,
         updated_at=doc.updated_at,

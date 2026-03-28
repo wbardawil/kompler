@@ -35,6 +35,9 @@ class DocumentResponse(BaseModel):
     entity_count: int = 0
     expiry_date: datetime | None = None
     review_due_date: datetime | None = None
+    expiry_verified: bool = False
+    review_date_verified: bool = False
+    classification_verified: bool = False
     compliance_tags: list[str] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
