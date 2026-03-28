@@ -112,9 +112,65 @@ async def upload_document(
         await session.commit()
 
         # Run the Document Analysis Agent (LangGraph)
+        # First: quick classify to determine if full analysis is needed
         agent_result = None
         if settings.anthropic_api_key and len(settings.anthropic_api_key) > 20:
             try:
+                # Get tenant's active frameworks to determine relevance
+                tenant_frameworks = None
+                try:
+                    from src.compliance.profile import get_compliance_profile
+                    profile = await get_compliance_profile(session, tenant.id)
+                    tenant_frameworks = profile.get("frameworks", ["iso_9001"])
+                except Exception:
+                    tenant_frameworks = ["iso_9001"]
+
+                # Quick classify first to determine enrichment tier
+                from src.enrichment.processor import ClaudeProvider
+                llm = ClaudeProvider()
+                quick_class = await llm.classify(text_content[:4000])
+                detected_type = quick_class.get("doc_type", "other")
+
+                # Check if this doc type is relevant to compliance
+                from src.api.routes.onboarding import get_enrichment_tier
+                tier = get_enrichment_tier(detected_type, tenant_frameworks)
+
+                logger.info(f"Document '{file.filename}' classified as '{detected_type}' → tier: {tier}")
+
+                if tier == "light":
+                    # Non-compliance document: classify only, skip entity extraction
+                    doc.doc_type = detected_type
+                    doc.classification_confidence = quick_class.get("confidence", 0.0)
+                    doc.summary = quick_class.get("summary")
+                    doc.language = quick_class.get("language", "en")
+                    doc.enrichment_tier = "light"
+                    doc.status = "enriched"
+                    doc.enrichment_metadata = {
+                        "tier": "light",
+                        "reason": "Not a compliance document for active frameworks",
+                        "frameworks_checked": tenant_frameworks,
+                    }
+
+                    from src.db.models import CreditTransaction
+                    txn = CreditTransaction(
+                        tenant_id=tenant.id, action="classify",
+                        credits=settings.credit_cost_classify, document_id=doc.id,
+                    )
+                    session.add(txn)
+                    await session.execute(
+                        text("UPDATE tenants SET credits_used_this_period = credits_used_this_period + :c WHERE id = :tid"),
+                        {"c": settings.credit_cost_classify, "tid": str(tenant.id)},
+                    )
+                    await session.commit()
+
+                    return DocumentUploadResponse(
+                        document_id=str(doc.id),
+                        filename=doc.filename,
+                        status="enriched",
+                        message=f"Classified as: {detected_type}. Not a compliance document — saved 2.0 credits by skipping entity extraction.",
+                    )
+
+                # Compliance-relevant document: full agent pipeline
                 from src.agents.document_analysis import analyze_document
 
                 agent_result = await analyze_document(

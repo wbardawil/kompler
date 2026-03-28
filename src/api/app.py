@@ -53,6 +53,7 @@ def create_app() -> FastAPI:
     from src.api.routes.alerts import router as alerts_router
     from src.api.routes.graph import router as graph_router
     from src.api.routes.compliance import router as compliance_router
+    from src.api.routes.onboarding import router as onboarding_router
 
     app.include_router(health_router, tags=["health"])
     app.include_router(documents_router, prefix="/api/v1", tags=["documents"])
@@ -61,6 +62,7 @@ def create_app() -> FastAPI:
     app.include_router(alerts_router, prefix="/api/v1", tags=["alerts"])
     app.include_router(graph_router, prefix="/api/v1", tags=["graph"])
     app.include_router(compliance_router, prefix="/api/v1", tags=["compliance"])
+    app.include_router(onboarding_router, prefix="/api/v1", tags=["onboarding"])
 
     return app
 
