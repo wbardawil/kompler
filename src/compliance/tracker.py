@@ -170,15 +170,27 @@ async def calculate_compliance_score(
     session: AsyncSession,
     tenant_id: uuid.UUID,
 ) -> dict:
-    """Calculate compliance score based on open action items.
+    """Calculate compliance score based on framework completeness + alerts.
 
-    Score = 100 - (weighted sum of open issues)
-    Critical: -15 per item
-    Warning: -8 per item
-    Info: -3 per item
-    Resolved items don't count against score.
+    The score reflects REAL compliance readiness:
+    - 60% weight: framework document completeness (do you have what's required?)
+    - 40% weight: alert status (are there critical/warning issues?)
+
+    A company with 0% REPSE coverage can't show 100 just because they have no alerts.
     """
-    # Count open items by severity
+    # 1. Framework completeness (60% of score)
+    try:
+        from src.compliance.profile import get_compliance_profile
+        from src.compliance.completeness import get_completeness_summary
+
+        profile = await get_compliance_profile(session, tenant_id)
+        frameworks = profile.get("frameworks", ["iso_9001"])
+        completeness = await get_completeness_summary(session, tenant_id, frameworks)
+        completeness_score = completeness.get("overall_score", 0)
+    except Exception:
+        completeness_score = 0
+
+    # 2. Alert status (40% of score)
     result = await session.execute(
         text("""
             SELECT severity, count(*) as cnt
@@ -190,7 +202,6 @@ async def calculate_compliance_score(
     )
     severity_counts = {row["severity"]: row["cnt"] for row in result.mappings().all()}
 
-    # Count total and resolved
     total_result = await session.execute(
         text("SELECT count(*) as total FROM alerts WHERE tenant_id = :tenant_id"),
         {"tenant_id": str(tenant_id)},
@@ -203,25 +214,25 @@ async def calculate_compliance_score(
     )
     resolved = resolved_result.scalar() or 0
 
-    # Calculate score
-    score = 100
     critical = severity_counts.get("critical", 0)
     warning = severity_counts.get("warning", 0)
     info = severity_counts.get("info", 0)
 
-    score -= critical * 15
-    score -= warning * 8
-    score -= info * 3
+    # Alert score: start at 100, subtract for open issues
+    alert_score = 100
+    alert_score -= critical * 20
+    alert_score -= warning * 10
+    alert_score -= info * 3
+    alert_score = max(0, min(100, alert_score))
 
-    # Bonus for having resolved items (shows progress)
-    if total > 0 and resolved > 0:
-        resolution_rate = resolved / total
-        score += int(resolution_rate * 10)  # Up to +10 for resolving everything
-
+    # Combined: 60% completeness + 40% alert health
+    score = int(completeness_score * 0.6 + alert_score * 0.4)
     score = max(0, min(100, score))
 
     return {
         "score": score,
+        "completeness_score": completeness_score,
+        "alert_score": alert_score,
         "total_items": total,
         "open_items": total - resolved,
         "resolved_items": resolved,
@@ -231,7 +242,7 @@ async def calculate_compliance_score(
             "info": info,
         },
         "resolution_rate": round(resolved / total * 100, 1) if total > 0 else 100.0,
-        "status": "excellent" if score >= 90 else "good" if score >= 75 else "needs_attention" if score >= 50 else "critical",
+        "status": "excellent" if score >= 80 else "good" if score >= 60 else "needs_attention" if score >= 40 else "critical",
     }
 
 
