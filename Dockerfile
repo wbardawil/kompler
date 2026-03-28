@@ -7,11 +7,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Python deps
+# Install Python deps WITHOUT sentence-transformers/torch (too big for Railway)
+# Embeddings will use the API instead of local model in production
 COPY pyproject.toml README.md ./
 COPY src/ src/
-RUN pip install --no-cache-dir . && \
-    pip install --no-cache-dir pdfplumber python-docx openpyxl psycopg-binary psycopg
+
+# Install with minimal deps, skip heavy ML packages
+RUN pip install --no-cache-dir \
+    fastapi uvicorn[standard] python-multipart sse-starlette \
+    anthropic pydantic pydantic-settings \
+    sqlalchemy[asyncio] asyncpg pgvector alembic \
+    redis arq httpx \
+    structlog sentry-sdk[fastapi] \
+    slowapi python-jose[cryptography] passlib[bcrypt] \
+    stripe python-dotenv pyyaml \
+    psycopg psycopg-binary \
+    pdfplumber python-docx openpyxl \
+    langgraph langchain-core
 
 # Copy remaining files
 COPY alembic/ alembic/

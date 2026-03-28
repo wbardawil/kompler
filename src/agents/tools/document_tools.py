@@ -34,12 +34,20 @@ async def extract_entities(
 
 
 async def generate_embedding(text: str, summary: str = "") -> list[float]:
-    """Generate embedding vector for semantic search and entity resolution."""
-    from sentence_transformers import SentenceTransformer
+    """Generate embedding vector for semantic search and entity resolution.
 
-    model = SentenceTransformer("all-MiniLM-L6-v2")
+    Uses sentence-transformers locally if available, otherwise returns None.
+    Production deployments should use a dedicated embedding service.
+    """
     combined = f"{summary}\n\n{text[:2000]}"
-    return model.encode(combined).tolist()
+    try:
+        from sentence_transformers import SentenceTransformer
+
+        model = SentenceTransformer("all-MiniLM-L6-v2")
+        return model.encode(combined).tolist()
+    except ImportError:
+        logger.warning("sentence-transformers not available, skipping embedding generation")
+        return None
 
 
 async def find_cross_doc_matches(
