@@ -33,6 +33,6 @@ COPY scripts/ scripts/
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=5s CMD curl -f http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
 CMD uvicorn src.api.app:app --host 0.0.0.0 --port ${PORT:-8000}
