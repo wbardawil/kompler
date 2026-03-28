@@ -47,21 +47,75 @@ async def get_action_items(
     result = await session.execute(text(sql), params)
     rows = result.mappings().all()
 
-    return [
-        {
+    items = []
+    for row in rows:
+        details = row["details"] if isinstance(row["details"], dict) else json.loads(row["details"] or "{}")
+        alert_type = row["alert_type"]
+
+        item = {
             "id": str(row["id"]),
-            "type": row["alert_type"],
+            "type": alert_type,
             "severity": row["severity"],
             "title": row["title"],
             "message": row["message"],
-            "details": row["details"] if isinstance(row["details"], dict) else json.loads(row["details"] or "{}"),
+            "details": details,
             "status": row["status"],
             "documents": json.loads(row["source_document_ids"]) if isinstance(row["source_document_ids"], str) else (row["source_document_ids"] or []),
             "created_at": row["created_at"].isoformat() if row["created_at"] else None,
             "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
+            # Context fields for the frontend
+            "assigned_to": details.get("assigned_to"),
+            "due_date": details.get("due_date"),
+            "notes": details.get("notes"),
+            "how_to_fix": _get_how_to_fix(alert_type, details),
+            "what_to_look_for": _get_what_to_look_for(alert_type, details),
         }
-        for row in rows
-    ]
+        items.append(item)
+
+    return items
+
+
+def _get_how_to_fix(alert_type: str, details: dict) -> str:
+    """Get a human-readable instruction for how to fix this issue."""
+    instructions = {
+        "missing_document": "Upload the required document, or link an existing document that satisfies this requirement. If this requirement doesn't apply to your organization, dismiss it with a justification.",
+        "missing_review": "Set review dates for your controlled documents. ISO 9001 requires periodic review of SOPs, policies, and procedures.",
+        "expiry": "Upload a renewed certificate or document. If renewal is in progress, mark it and set an expected date. If the supplier or cert is no longer needed, dismiss with justification.",
+        "stale_review": "Review the document and confirm it's still accurate and current. If changes are needed, upload an updated version. Then set the next review date.",
+        "contradiction": "Compare both documents side by side. Determine which has the correct information, then update the incorrect document.",
+        "unclassified": "Run AI enrichment on this document to classify it and extract entities. This costs 2.5 credits.",
+    }
+    return instructions.get(alert_type, "Review this item and take appropriate action.")
+
+
+def _get_what_to_look_for(alert_type: str, details: dict) -> dict:
+    """Get contextual information about what the user should look for."""
+    result = {}
+
+    if alert_type == "missing_document":
+        result["clause"] = details.get("clause", "")
+        result["required_document"] = details.get("required_doc", "")
+        result["framework"] = details.get("framework", "")
+        result["keywords"] = details.get("keywords", [])
+        result["accepted_doc_types"] = details.get("doc_types", [])
+
+    elif alert_type == "expiry":
+        result["document_name"] = details.get("document_name", "")
+        result["expiry_date"] = details.get("expiry_date", "")
+        result["days_remaining"] = details.get("days", 0)
+
+    elif alert_type == "stale_review":
+        result["documents"] = details.get("documents", [])
+        result["review_requirement"] = "ISO 9001 clause 7.5.3 requires periodic review"
+
+    elif alert_type == "contradiction":
+        result["document_a"] = details.get("doc_a_name", "")
+        result["document_b"] = details.get("doc_b_name", "")
+        result["field"] = details.get("field", "")
+        result["value_a"] = details.get("value_a", "")
+        result["value_b"] = details.get("value_b", "")
+
+    return result
 
 
 async def update_action_item(
