@@ -93,36 +93,34 @@ async def _answer_compliance_question(
         for a in info_items[:5]:
             context_parts.append(f"- {a['title']}: {a['message']}")
 
-    compliance_context = "\n".join(context_parts)
+    # Build concise answer — NO AI call needed, just format the data clearly
+    lines = []
 
-    # Generate answer with Claude
-    from src.enrichment.processor import ClaudeProvider
-    llm = ClaudeProvider()
+    # Score headline
+    lines.append(f"Compliance score: {score_data['score']}/100.")
 
-    prompt = f"""You are a compliance intelligence assistant. Answer the user's question
-based on the compliance data below. Be specific, actionable, and prioritize by severity.
-If there are critical items, lead with those.
-
-COMPLIANCE DATA:
-{compliance_context}
-
-Respond with JSON:
-{{"answer": "your detailed answer addressing the question",
-"citations": [],
-"confidence": 0.9,
-"flags": ["list any urgent items"]}}
-Respond ONLY with valid JSON."""
-
-    result = await llm.classify(prompt + f"\n\nUser question: {question}")
-
-    flags = result.get("flags", [])
+    # Critical first
     if critical:
-        flags = [f"{len(critical)} critical items need immediate attention"] + flags
+        lines.append(f"\n{len(critical)} critical: " + ", ".join(a['title'] for a in critical[:3]) + ".")
+
+    # Warnings summary (not each one)
+    if warnings:
+        lines.append(f"{len(warnings)} warnings: missing compliance records that auditors will check.")
+
+    # Top recommendation
+    if critical:
+        lines.append(f"\nStart with: {critical[0]['title']}.")
+    elif warnings:
+        lines.append(f"\nStart with: {warnings[0]['title']}.")
+
+    flags = []
+    if critical:
+        flags.append(f"{len(critical)} critical items need immediate attention")
 
     return QAResponse(
-        answer=result.get("answer", compliance_context),
+        answer="\n".join(lines),
         citations=[],
-        confidence=result.get("confidence", 0.9),
+        confidence=0.95,
         flags=flags,
         credits_consumed=0.0,
     )
