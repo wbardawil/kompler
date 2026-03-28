@@ -79,6 +79,14 @@ async def get_actions(
     items = await get_action_items(session, tenant.id, status_filter=status)
     score = await calculate_compliance_score(session, tenant.id)
 
+    # Enrich each action item with its specific resolution options
+    from src.compliance.resolutions import get_resolution_options
+
+    for item in items:
+        item["resolution_options"] = get_resolution_options(
+            item["type"], item.get("details")
+        )
+
     return {
         "actions": items,
         "total": len(items),
