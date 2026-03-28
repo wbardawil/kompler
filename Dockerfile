@@ -23,7 +23,8 @@ RUN pip install --no-cache-dir \
     stripe python-dotenv pyyaml \
     psycopg psycopg-binary \
     pdfplumber python-docx openpyxl \
-    langgraph langchain-core
+    langgraph langchain-core \
+    boto3
 
 # Copy remaining files
 COPY alembic/ alembic/
