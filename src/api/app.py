@@ -58,9 +58,11 @@ def create_app() -> FastAPI:
     from src.api.routes.upload_guide import router as upload_guide_router
     from src.api.routes.compliance_map import router as compliance_map_router
     from src.api.routes.auth import router as auth_router
+    from src.api.routes.audit import router as audit_router
 
     app.include_router(health_router, tags=["health"])
     app.include_router(auth_router, prefix="/api/v1", tags=["auth"])
+    app.include_router(audit_router, prefix="/api/v1", tags=["audit"])
     app.include_router(documents_router, prefix="/api/v1", tags=["documents"])
     app.include_router(chat_router, prefix="/api/v1", tags=["chat"])
     app.include_router(usage_router, prefix="/api/v1", tags=["usage"])
