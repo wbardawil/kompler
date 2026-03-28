@@ -192,6 +192,24 @@ def _suggest_frameworks(profile: CompanyProfileRequest) -> list[dict]:
             "recommended": True,
         })
 
+    # IATF 16949 — automotive industry
+    if profile.industry == "automotive":
+        suggestions.append({
+            "id": "iatf_16949",
+            "name": "IATF 16949:2016",
+            "reason": "Required for automotive supply chain — builds on ISO 9001 with automotive-specific requirements (PPAP, FMEA, MSA, Control Plans)",
+            "recommended": True,
+        })
+
+    # LFPIORPI — Anti-money laundering (Mexico)
+    if profile.country == "Mexico":
+        suggestions.append({
+            "id": "lfpiorpi",
+            "name": "LFPIORPI (Ley Antilavado)",
+            "reason": "Mexican Anti-Money Laundering law — mandatory for vehicle sales and other vulnerable activities. 2025 reform increased retention to 10 years.",
+            "recommended": profile.industry in ("automotive", "real_estate", "jewelry", "financial"),
+        })
+
     # IMMEX — Mexican maquiladoras
     if profile.country == "Mexico" and profile.industry in ("manufacturing", "automotive", "aerospace"):
         suggestions.append({

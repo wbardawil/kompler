@@ -319,6 +319,234 @@ REPSE = {
 
 
 # =============================================================================
+# IATF 16949:2016 — Automotive Quality Management
+# =============================================================================
+
+IATF_16949 = {
+    "id": "iatf_16949",
+    "name": "IATF 16949:2016",
+    "full_name": "IATF 16949:2016 Automotive Quality Management Systems",
+    "version": "2016",
+    "category": "automotive_quality",
+
+    "required_documents": [
+        {
+            "clause": "4.3",
+            "name": "QMS Scope (Automotive)",
+            "description": "QMS scope including automotive-specific requirements and customer-specific requirements",
+            "doc_types": ["policy", "procedure"],
+            "keywords": ["scope", "alcance", "automotive", "automotriz", "IATF"],
+            "mandatory": True,
+        },
+        {
+            "clause": "5.2",
+            "name": "Quality Policy (Automotive)",
+            "description": "Quality policy with automotive customer-specific commitments",
+            "doc_types": ["policy"],
+            "keywords": ["quality policy", "politica de calidad", "automotive", "automotriz"],
+            "mandatory": True,
+        },
+        {
+            "clause": "6.1.2.1",
+            "name": "Risk Analysis (FMEA)",
+            "description": "Risk analysis including PFMEA, DFMEA, and contingency plans",
+            "doc_types": ["quality_record", "risk_assessment"],
+            "keywords": ["FMEA", "risk analysis", "analisis de riesgo", "failure mode", "modo de falla"],
+            "mandatory": True,
+        },
+        {
+            "clause": "6.1.2.3",
+            "name": "Contingency Plans",
+            "description": "Emergency response and contingency plans for supply chain disruption",
+            "doc_types": ["procedure", "policy"],
+            "keywords": ["contingency", "contingencia", "emergency", "emergencia", "business continuity"],
+            "mandatory": True,
+        },
+    ],
+
+    "required_records": [
+        {
+            "clause": "7.1.5.1.1",
+            "name": "MSA Studies (Measurement System Analysis)",
+            "doc_types": ["quality_record"],
+            "keywords": ["MSA", "measurement system analysis", "analisis de sistema de medicion", "Gage R&R"],
+        },
+        {
+            "clause": "7.2.3",
+            "name": "Internal Auditor Competency Records",
+            "description": "Evidence of internal auditor competency for QMS, manufacturing, and product audits",
+            "doc_types": ["training_record", "quality_record"],
+            "keywords": ["auditor competency", "competencia auditor", "auditor qualification", "VDA 6.3"],
+        },
+        {
+            "clause": "8.3.4.4",
+            "name": "Product Approval Process (PPAP/PPA)",
+            "description": "Product part approval records including PPAP submissions",
+            "doc_types": ["quality_record"],
+            "keywords": ["PPAP", "product approval", "aprobacion de producto", "PPA", "part submission warrant"],
+        },
+        {
+            "clause": "8.4.2.4.1",
+            "name": "Second-Party Audit Records",
+            "description": "Supplier audit records and second-party audit results",
+            "doc_types": ["audit_report", "quality_record"],
+            "keywords": ["supplier audit", "auditoria proveedor", "second party", "segunda parte", "VDA 6.3"],
+        },
+        {
+            "clause": "8.5.1.1",
+            "name": "Control Plan",
+            "description": "Control plans for pre-launch and production phases",
+            "doc_types": ["quality_record", "procedure"],
+            "keywords": ["control plan", "plan de control", "APQP"],
+        },
+        {
+            "clause": "8.5.2.1",
+            "name": "Traceability Records",
+            "description": "Product identification and traceability throughout manufacturing",
+            "doc_types": ["quality_record"],
+            "keywords": ["traceability", "trazabilidad", "lot tracking", "serial number"],
+        },
+        {
+            "clause": "8.7.1.4",
+            "name": "Rework/Repair Records",
+            "description": "Control of reworked and repaired product with re-inspection records",
+            "doc_types": ["quality_record", "corrective_action"],
+            "keywords": ["rework", "retrabajo", "repair", "reparacion", "re-inspection"],
+        },
+        {
+            "clause": "9.2.2.1",
+            "name": "QMS Audit Program (Automotive)",
+            "description": "Internal audit program covering QMS, manufacturing process, and product audits",
+            "doc_types": ["audit_report", "procedure"],
+            "keywords": ["audit program", "programa de auditoria", "manufacturing audit", "process audit", "product audit"],
+        },
+    ],
+
+    "rules": [
+        {
+            "id": "iatf_audit_cycle",
+            "type": "review_period",
+            "doc_types": ["sop", "procedure", "control_plan"],
+            "period_days": 365,
+            "clause": "9.2.2.1",
+            "severity": "warning",
+            "message_en": "Automotive QMS requires annual audit cycle covering all processes",
+            "message_es": "El SGC automotriz requiere ciclo de auditoria anual cubriendo todos los procesos",
+        },
+    ],
+}
+
+
+# =============================================================================
+# LFPIORPI — Mexican Anti-Money Laundering Law
+# =============================================================================
+
+LFPIORPI = {
+    "id": "lfpiorpi",
+    "name": "LFPIORPI (Ley Antilavado)",
+    "full_name": "Ley Federal para la Prevencion e Identificacion de Operaciones con Recursos de Procedencia Ilicita",
+    "version": "2025",
+    "category": "anti_money_laundering",
+
+    "required_documents": [
+        {
+            "clause": "AML-REG",
+            "name": "Registro ante el SAT como Sujeto Obligado",
+            "description": "Alta en el portal de prevencion de lavado de dinero del SAT como sujeto obligado por realizar actividades vulnerables",
+            "doc_types": ["regulatory_registration", "certificate"],
+            "keywords": ["SAT", "sujeto obligado", "actividades vulnerables", "portal antilavado", "registro PLD"],
+            "mandatory": True,
+        },
+        {
+            "clause": "AML-MANUAL",
+            "name": "Manual de Prevencion de Lavado de Dinero (PLD)",
+            "description": "Manual interno de politicas y procedimientos para prevencion de lavado de dinero y financiamiento al terrorismo",
+            "doc_types": ["policy", "procedure"],
+            "keywords": ["manual PLD", "prevencion lavado", "anti money laundering", "antilavado", "PLD/FT"],
+            "mandatory": True,
+        },
+        {
+            "clause": "AML-KYC",
+            "name": "Politica de Identificacion del Cliente (KYC)",
+            "description": "Procedimiento de identificacion y verificacion de clientes, incluyendo beneficiario controlador para personas morales",
+            "doc_types": ["policy", "procedure"],
+            "keywords": ["KYC", "conoce tu cliente", "identificacion cliente", "beneficiario controlador", "due diligence"],
+            "mandatory": True,
+        },
+        {
+            "clause": "AML-EFIRMA",
+            "name": "e.firma Vigente (Firma Electronica Avanzada)",
+            "description": "Certificado de e.firma vigente ante el SAT, requerido para presentar avisos",
+            "doc_types": ["certificate", "regulatory_registration"],
+            "keywords": ["e.firma", "firma electronica", "FIEL", "certificado SAT"],
+            "mandatory": True,
+        },
+    ],
+
+    "required_records": [
+        {
+            "clause": "AML-AVISOS",
+            "name": "Avisos Mensuales al SAT",
+            "description": "Reportes mensuales de actividades vulnerables presentados ante el portal del SAT (incluyendo avisos en cero cuando no haya operaciones)",
+            "doc_types": ["quality_record", "tax_document"],
+            "keywords": ["aviso", "reporte mensual", "actividades vulnerables", "portal SAT", "aviso en cero"],
+        },
+        {
+            "clause": "AML-EXPEDIENTES",
+            "name": "Expedientes de Identificacion de Clientes",
+            "description": "Expedientes con documentos de identificacion de cada cliente en operaciones que superen el umbral (3,210 UMAs para vehiculos)",
+            "doc_types": ["quality_record"],
+            "keywords": ["expediente cliente", "identificacion oficial", "INE", "pasaporte", "comprobante domicilio", "RFC cliente"],
+        },
+        {
+            "clause": "AML-BENEFICIARIO",
+            "name": "Identificacion del Beneficiario Controlador",
+            "description": "Documentacion que identifica al beneficiario controlador en operaciones con personas morales o fideicomisos",
+            "doc_types": ["quality_record"],
+            "keywords": ["beneficiario controlador", "beneficial owner", "persona moral", "fideicomiso", "acta constitutiva"],
+        },
+        {
+            "clause": "AML-RESGUARDO",
+            "name": "Archivo de Resguardo (10 anos)",
+            "description": "Custodia y proteccion de informacion por 10 anos contados a partir de la realizacion de la actividad vulnerable (reformado de 5 a 10 anos en 2025)",
+            "doc_types": ["quality_record", "policy"],
+            "keywords": ["resguardo", "custodia", "proteccion informacion", "retencion", "10 anos"],
+        },
+        {
+            "clause": "AML-CAPACITACION",
+            "name": "Registros de Capacitacion PLD",
+            "description": "Evidencia de capacitacion del personal en materia de prevencion de lavado de dinero",
+            "doc_types": ["training_record", "quality_record"],
+            "keywords": ["capacitacion PLD", "entrenamiento antilavado", "formacion", "prevencion lavado"],
+        },
+    ],
+
+    "rules": [
+        {
+            "id": "lfpiorpi_monthly_report",
+            "type": "review_period",
+            "doc_types": ["quality_record", "tax_document"],
+            "period_days": 30,
+            "clause": "AML-AVISOS",
+            "severity": "critical",
+            "message_en": "Monthly vulnerability reports must be filed with SAT, including zero-activity reports",
+            "message_es": "Los avisos mensuales de actividades vulnerables deben presentarse ante el SAT, incluyendo avisos en cero",
+        },
+        {
+            "id": "lfpiorpi_retention",
+            "type": "retention",
+            "doc_types": ["quality_record"],
+            "period_days": 3650,
+            "clause": "AML-RESGUARDO",
+            "severity": "critical",
+            "message_en": "Client identification records must be retained for 10 years (increased from 5 in 2025 reform)",
+            "message_es": "Los expedientes de identificacion deben resguardarse por 10 anos (incrementado de 5 en reforma 2025)",
+        },
+    ],
+}
+
+
+# =============================================================================
 # FRAMEWORK REGISTRY
 # =============================================================================
 
@@ -326,6 +554,8 @@ FRAMEWORKS: dict[str, dict[str, Any]] = {
     "iso_9001": ISO_9001,
     "immex": IMMEX,
     "repse": REPSE,
+    "iatf_16949": IATF_16949,
+    "lfpiorpi": LFPIORPI,
 }
 
 
