@@ -1,0 +1,16 @@
+name: "SOP Revision Check"
+trigger: "doc_type == 'sop'"
+vertical: manufacturing
+description: "Flag SOPs that haven't been reviewed in 12+ months per ISO 9001 requirements."
+steps:
+  - extract:
+      fields: ["revision_date", "revision_number", "department", "approved_by"]
+  - validate:
+      revision_date: "must be > today - 365d"
+  - notify_if:
+      condition: "validation_failed"
+      channel: webhook
+      message: "SOP overdue for review: {title} (last revised {revision_date})"
+  - tag:
+      review_status: "{validation_passed ? 'current' : 'overdue'}"
+      last_revision: "{revision_date}"

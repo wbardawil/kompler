@@ -1,0 +1,22 @@
+name: "Supplier Certificate Review"
+trigger: "doc_type == 'supplier_certificate'"
+vertical: manufacturing
+description: "Validate supplier certificates on upload. Check expiry, flag high-risk."
+steps:
+  - extract:
+      fields: ["supplier_name", "certificate_type", "expiry_date", "scope", "issuing_body"]
+  - validate:
+      expiry_date: "must be > today"
+      certificate_type: "must be in [ISO_9001, ISO_14001, IATF_16949, AS9100]"
+  - classify:
+      field: risk_level
+      options: ["low", "medium", "high"]
+  - notify_if:
+      condition: "risk_level == 'high' OR expiry_date < today + 30d"
+      channel: webhook
+      message: "High-risk or expiring certificate: {supplier_name} - {certificate_type}"
+  - tag:
+      validated: "true"
+      risk: "{risk_level}"
+      expires: "{expiry_date}"
+      supplier: "{supplier_name}"

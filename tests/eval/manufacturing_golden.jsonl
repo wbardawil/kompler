@@ -1,0 +1,10 @@
+{"text": "Standard Operating Procedure: Assembly Line Inspection. Rev 3.2. Purpose: Define the inspection process for all finished goods before shipping...", "expected_type": "sop", "language": "en"}
+{"text": "Procedimiento Operativo Estándar: Inspección de Línea de Ensamblaje. Rev 3.2. Propósito: Definir el proceso de inspección...", "expected_type": "sop", "language": "es"}
+{"text": "Inspection Report #IR-2024-0847. Date: 2024-03-15. Inspector: J. Rodriguez. Part Number: AX-2200. Result: PASS. Dimensions within tolerance...", "expected_type": "inspection_report", "language": "en"}
+{"text": "Certificate of Conformity. Supplier: Acme Steel Corp. Certificate Type: ISO 9001:2015. Valid Until: 2025-12-31. Scope: Manufacturing of carbon steel...", "expected_type": "supplier_certificate", "language": "en"}
+{"text": "Certificado de Conformidad. Proveedor: Aceros del Norte S.A. Tipo: ISO 14001:2015. Vigencia: 2025-06-30...", "expected_type": "supplier_certificate", "language": "es"}
+{"text": "Material Safety Data Sheet. Product: Acetone (Technical Grade). CAS Number: 67-64-1. Flash Point: -20°C. Health Hazard: 2. Flammability: 3...", "expected_type": "msds_sds", "language": "en"}
+{"text": "Engineering Change Order #ECO-2024-112. Affected Part: Housing Assembly HA-500. Change: Increase wall thickness from 2.0mm to 2.5mm. Reason: Field failures...", "expected_type": "eco", "language": "en"}
+{"text": "Work Instruction WI-CNC-005: CNC Lathe Setup for Part Family PF-300. Required PPE: Safety glasses, steel-toe boots. Step 1: Verify raw material dimensions...", "expected_type": "work_instruction", "language": "en"}
+{"text": "Quality Record QR-2024-0334. NCR Number: NCR-0334. Defect Type: Dimensional out-of-spec. Root Cause: Tool wear. Corrective Action: Replace insert after 500 cycles...", "expected_type": "quality_record", "language": "en"}
+{"text": "Registro de Calidad QR-2024-0335. Número NCR: NCR-0335. Tipo de Defecto: Acabado superficial fuera de especificación...", "expected_type": "quality_record", "language": "es"}
